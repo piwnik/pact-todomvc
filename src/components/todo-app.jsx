@@ -42,7 +42,7 @@ export class TodoApp extends React.PureComponent {
 
   getTodos() {
     const cmdObj = {
-      pactCode: Pact.lang.mkExp('todos.read-todos'),
+      pactCode: Pact.lang.mkExp('todo.todos.read-todos'),
       keyPairs: KP
     };
 
@@ -66,7 +66,7 @@ export class TodoApp extends React.PureComponent {
   add(title) {
     const uuid = uuidv4();
     const cmdObj = {
-      pactCode: Pact.lang.mkExp('todos.new-todo', uuid, title),
+      pactCode: Pact.lang.mkExp('todo.todos.new-todo', uuid, title),
       keyPairs: KP
     };
 
@@ -76,7 +76,7 @@ export class TodoApp extends React.PureComponent {
 
   toggle(todo) {
     const cmdObj = {
-      pactCode:  Pact.lang.mkExp('todos.toggle-todo-status', todo.id),
+      pactCode:  Pact.lang.mkExp('todo.todos.toggle-todo-status', todo.id),
       keyPairs: KP
     };
 
@@ -93,7 +93,7 @@ export class TodoApp extends React.PureComponent {
         : activeTodos;
     const cmds = toggleTodos.map(todo => {
       return {
-        pactCode: Pact.lang.mkExp('todos.toggle-todo-status', todo.id),
+        pactCode: Pact.lang.mkExp('todo.todos.toggle-todo-status', todo.id),
         keyPairs: KP
       };
     });
@@ -104,19 +104,19 @@ export class TodoApp extends React.PureComponent {
 
   destroy(todo) {
     const cmdObj = {
-      pactCode: Pact.lang.mkExp('todos.delete-todo', todo.id),
+      pactCode: Pact.lang.mkExp('todo.todos.delete-todo', todo.id),
       keyPairs: KP
     };
 
     Pact.fetch.send(cmdObj, API_HOST)
       .then(() => this.getTodos());
-  }
+  } 
 
   clearCompleted() {
     const completedTodos = this.state.todos.filter(todo => todo.completed);
     const cmds = completedTodos.map(todo => {
       return {
-        pactCode: Pact.lang.mkExp('todos.delete-todo', todo.id),
+        pactCode: Pact.lang.mkExp('todo.todos.delete-todo', todo.id),
         keyPairs: KP
       };
     });
@@ -127,7 +127,7 @@ export class TodoApp extends React.PureComponent {
 
   save(todo, text) {
     const cmdObj = {
-      pactCode: Pact.lang.mkExp('todos.edit-todo', todo.id, text),
+      pactCode: Pact.lang.mkExp('todo.todos.edit-todo', todo.id, text),
       keyPairs: KP
     };
 

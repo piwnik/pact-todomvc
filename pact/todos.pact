@@ -2,12 +2,14 @@
 ;; todos smart contract
 ;;
 
+(define-namespace 'todo (read-keyset 'user-ks) (read-keyset 'admin-ks))
+(namespace 'todo)
 ;; admin keyset definition
-(define-keyset 'todo-admin-keyset
+(define-keyset "todo.todo-admin-keyset"
   (read-keyset "todo-admin-keyset"))
 
 ;; todos module, administered by keyset
-(module todos 'todo-admin-keyset
+(module todos "todo.todo-admin-keyset"
   " Smart contract module for TODO-MVC pact app.   \
   \ Tables:                                        \
   \ todo -- holds todo entries"
