@@ -1,6 +1,7 @@
 import * as React from "react";
 import uuidv4 from "uuid/v4";
 import Pact from "pact-lang-api";
+import { DragDropContext, Droppable } from "react-beautiful-dnd";
 
 import { TodoItem } from "./todo-item.jsx";
 import { TodoFooter } from "./footer.jsx";
@@ -25,6 +26,7 @@ export class TodoApp extends React.PureComponent {
     };
     this.handleChange = this.handleChange.bind(this);
     this.handleNewTodoKeyDown = this.handleNewTodoKeyDown.bind(this);
+    this.handleOnDragEnd = this.handleOnDragEnd.bind(this);
     this.toggleAll = this.toggleAll.bind(this);
     this.edit = this.edit.bind(this);
     this.cancel = this.cancel.bind(this);
@@ -76,7 +78,7 @@ export class TodoApp extends React.PureComponent {
 
   toggle(todo) {
     const cmdObj = {
-      pactCode:  Pact.lang.mkExp('todo.todos.toggle-todo-status', todo.id),
+      pactCode: Pact.lang.mkExp('todo.todos.toggle-todo-status', todo.id),
       keyPairs: KP
     };
 
@@ -110,7 +112,7 @@ export class TodoApp extends React.PureComponent {
 
     Pact.fetch.send(cmdObj, API_HOST)
       .then(() => this.getTodos());
-  } 
+  }
 
   clearCompleted() {
     const completedTodos = this.state.todos.filter(todo => todo.completed);
@@ -187,11 +189,34 @@ export class TodoApp extends React.PureComponent {
     }
   }
 
+  handleOnDragEnd(result) { 
+    if (!result.destination) {
+      return;
+    }
+
+    const todos = this.state.todos;
+    const fromIndex = todos[result.source.index].index.int;
+    const toIndex = todos[result.destination.index].index.int;
+
+    const [reordered] = todos.splice(result.source.index, 1);
+    todos.splice(result.destination.index, 0, reordered);
+
+    this.setState({ todos: [...todos] });
+
+    const cmdObj = {
+      pactCode: Pact.lang.mkExp('todo.todos.set-todo-index', reordered.id, toIndex, fromIndex),
+      keyPairs: KP
+    };
+
+    Pact.fetch.send(cmdObj, API_HOST)
+      .then(() => this.getTodos());
+  }
+
   render() {
     var footer;
     var main;
     var todos = this.state.todos;
-    var shownTodos = todos.filter(function(todo) {
+    var shownTodos = todos.filter(function (todo) {
       switch (this.state.nowShowing) {
         case ACTIVE_TODOS:
           return !todo.completed;
@@ -202,11 +227,12 @@ export class TodoApp extends React.PureComponent {
       }
     }, this);
 
-    var todoItems = shownTodos.map(function(todo) {
+    var todoItems = shownTodos.map(function (todo, index) {
       return (
         <TodoItem
           key={todo.id}
           todo={todo}
+          index={index}
           onToggle={this.toggle.bind(this, todo)}
           onDestroy={this.destroy.bind(this, todo)}
           onEdit={this.edit}
@@ -217,7 +243,7 @@ export class TodoApp extends React.PureComponent {
       );
     }, this);
 
-    var activeTodoCount = todos.reduce(function(accum, todo) {
+    var activeTodoCount = todos.reduce(function (accum, todo) {
       return todo.completed ? accum : accum + 1;
     }, 0);
 
@@ -248,7 +274,16 @@ export class TodoApp extends React.PureComponent {
             checked={activeTodoCount === 0}
           />
           <label htmlFor="toggle-all" />
-          <ul className="todo-list">{todoItems}</ul>
+          <DragDropContext onDragEnd={this.handleOnDragEnd}>
+            <Droppable droppableId="todo-list">
+              {(provided) => (
+                <ul className="todo-list" {...provided.droppableProps} ref={provided.innerRef}>
+                  {todoItems}
+                  {provided.placeholder}
+                </ul>
+              )}
+            </Droppable>
+          </DragDropContext>
         </section>
       );
     }

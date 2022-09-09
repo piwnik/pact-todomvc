@@ -19,7 +19,8 @@
     "Row type for todos."
      title:string
      completed:bool
-     deleted:bool )
+     deleted:bool
+     index:integer)
 
   (deftable todo-table:{todo})
 
@@ -29,10 +30,15 @@
 
   (defun new-todo (id title)
     "Create new todo with ENTRY and DATE."
-    (insert todo-table id {
-      "title": title,
-      "completed": false,
-      "deleted": false })
+    
+     (insert todo-table id {
+        "title": title,
+        "completed": false,
+        "deleted": false,
+        "index": (length (keys todo-table)) 
+    })
+
+    (set-todo-index id 0 (length (keys todo-table))) 
   )
 
   (defun toggle-todo-status (id:string)
@@ -59,7 +65,39 @@
 
   (defun read-todos:[object{todo}] ()
     "Read all todos."
-    (map (read-todo) (keys todo-table)))
+    (sort ['index] (map (read-todo) (keys todo-table))))
+
+  (defun apply-index-correction(todo)
+    (with-read todo-table (at 'id todo) {
+      "index":= index
+    }
+    (update todo-table (at 'id todo) {
+      "index": (+ index (at "correction" todo))
+    })) 
+  )
+
+  (defun get-index-correction(new-index old-index index) 
+    (if (< new-index old-index) 
+        (if (and (< index old-index) (>= index new-index)) 1 0) 
+        (if (and (> index old-index) (<= index new-index)) -1 0))
+  )
+
+  (defun append-index-correction(new-index old-index todo) 
+    (+ { "correction": (get-index-correction new-index old-index (at 'index todo)) } todo)
+  )
+
+  (defun set-todo-index(id new-index old-index)
+    "Set todo index"
+
+    (map (apply-index-correction) 
+    (filter (compose (at 'correction ) (!= 0))
+    (map (append-index-correction new-index old-index)
+    (map (read-todo) (keys todo-table)))))
+
+    (update todo-table id {
+      "index": new-index
+    })
+  )
 )
 
 (create-table todo-table)

@@ -1,5 +1,6 @@
 import * as React from "react";
 import ReactDOM from "react-dom";
+import { Draggable } from "react-beautiful-dnd";
 
 var ESCAPE_KEY = 27;
 var ENTER_KEY = 13;
@@ -12,6 +13,8 @@ export class TodoItem extends React.Component {
     this.handleEdit = this.handleEdit.bind(this);
     this.handleSubmit = this.handleSubmit.bind(this);
     this.handleKeyDown = this.handleKeyDown.bind(this);
+
+    this.editField = React.createRef();
   }
 
   shouldComponentUpdate(nextProps, nextState) {
@@ -24,7 +27,7 @@ export class TodoItem extends React.Component {
 
   componentDidUpdate(prevProps) {
     if (!prevProps.editing && this.props.editing) {
-      var node = ReactDOM.findDOMNode(this.refs.editField);
+      var node = ReactDOM.findDOMNode(this.editField.current);
       node.focus();
       node.setSelectionRange(node.value.length, node.value.length);
     }
@@ -68,26 +71,33 @@ export class TodoItem extends React.Component {
           : "static";
 
     return (
-      <li className={status}>
-        <div className="view">
-          <input
-            className="toggle"
-            type="checkbox"
-            checked={this.props.todo.completed}
-            onChange={this.props.onToggle}
-          />
-          <label onDoubleClick={this.handleEdit}>{this.props.todo.title}</label>
-          <button className="destroy" onClick={this.props.onDestroy} />
-        </div>
-        <input
-          ref="editField"
-          className="edit"
-          value={this.state.editText}
-          onBlur={this.handleSubmit}
-          onChange={this.handleChange}
-          onKeyDown={this.handleKeyDown}
-        />
-      </li>
+      <Draggable key={this.props.todo.id} draggableId={this.props.todo.id} index={this.props.index}>
+        {(provided) => {
+          return (
+            <li className={status} ref={provided.innerRef} {...provided.draggableProps} >
+              <div className="drag-me" {...provided.dragHandleProps}> </div>
+              <div className="view">
+                <input
+                  className="toggle"
+                  type="checkbox"
+                  checked={this.props.todo.completed}
+                  onChange={this.props.onToggle}
+                />
+                <label onDoubleClick={this.handleEdit}>{this.props.todo.title}</label>
+                <button className="destroy" onClick={this.props.onDestroy} />
+              </div>
+              <input
+                ref={this.editField}
+                className="edit"
+                value={this.state.editText}
+                onBlur={this.handleSubmit}
+                onChange={this.handleChange}
+                onKeyDown={this.handleKeyDown}
+              />
+            </li>
+          );
+        }}
+      </Draggable>
     );
   }
 }
