@@ -6,6 +6,8 @@ import { DragDropContext, Droppable } from "react-beautiful-dnd";
 import { TodoItem } from "./todo-item.jsx";
 import { TodoFooter } from "./footer.jsx";
 
+import xwallet from './../utils/xwallet';
+
 const ENTER_KEY = 13;
 const KP = Pact.crypto.genKeyPair();
 const API_HOST = "http://localhost:9001";
@@ -13,6 +15,7 @@ const API_HOST = "http://localhost:9001";
 const ALL_TODOS = "all";
 const ACTIVE_TODOS = "active";
 const COMPLETED_TODOS = "completed";
+const NETWORK_ID = "testnet04";
 
 export class TodoApp extends React.PureComponent {
   constructor() {
@@ -22,7 +25,15 @@ export class TodoApp extends React.PureComponent {
       onChanges: [],
       nowShowing: ALL_TODOS,
       editing: null,
-      newTodo: ""
+      newTodo: "",
+      xwallet: {
+        isInstalled: false,
+        isConnected: false,
+        account: {
+          account: "",
+          chainId: 0
+        }
+      }
     };
     this.handleChange = this.handleChange.bind(this);
     this.handleNewTodoKeyDown = this.handleNewTodoKeyDown.bind(this);
@@ -36,10 +47,15 @@ export class TodoApp extends React.PureComponent {
     this.showActive = this.showActive.bind(this);
     this.showCompleted = this.showCompleted.bind(this);
     this.showAll = this.showAll.bind(this);
+    this.connect = this.connect.bind(this);
   }
 
-  componentDidMount() {
+  async componentDidMount() {
     this.getTodos();
+
+
+    await this.refreshWallet();
+    xwallet.onAccountChanged(this.refreshWallet.bind(this));
   }
 
   getTodos() {
@@ -189,7 +205,7 @@ export class TodoApp extends React.PureComponent {
     }
   }
 
-  handleOnDragEnd(result) { 
+  handleOnDragEnd(result) {
     if (!result.destination) {
       return;
     }
@@ -210,6 +226,33 @@ export class TodoApp extends React.PureComponent {
 
     Pact.fetch.send(cmdObj, API_HOST)
       .then(() => this.getTodos());
+  }
+
+  async connect() {
+    if (await xwallet.isConnected(NETWORK_ID)) {
+      await xwallet.disconnect(NETWORK_ID);
+    }
+    else {
+      await xwallet.connect(NETWORK_ID);
+    }
+
+    await this.refreshWallet();
+  }
+
+  async refreshWallet() {
+    const isWalletInstalled = await xwallet.isInstalled();
+    const isConnected = isWalletInstalled && await xwallet.isConnected(NETWORK_ID);
+    const account = isConnected && await xwallet.getAccount(NETWORK_ID);
+
+    this.setState({
+      ...this.state,
+      xwallet: {
+        ...this.state.xwallet,
+        isInstalled: isWalletInstalled,
+        isConnected: isConnected,
+        account: account || this.state.xwallet.account
+      }
+    });
   }
 
   render() {
@@ -288,9 +331,15 @@ export class TodoApp extends React.PureComponent {
       );
     }
 
+    let wallet = this.state.xwallet;
+    let walletName = wallet?.account?.account;
+    walletName = `${walletName.substring(0, 7)}...${walletName.substring(walletName.length - 5, walletName.length)}`;
+
     return (
       <div>
         <header className="header">
+          <button className="connect-button" disabled={!wallet.isInstalled}
+            onClick={this.connect}>{wallet.isConnected ? walletName : "Connect X-Wallet"}</button>
           <h1>todos</h1>
           <input
             className="new-todo"
